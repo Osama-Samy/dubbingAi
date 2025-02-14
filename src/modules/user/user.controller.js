@@ -120,11 +120,23 @@ const resetPassword = async (req, res) => {
     }
 } 
 
+// get userName of a user
+const getUserName = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId)
+        res.json(user.username)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Something went wrong." })
+    }
+}
+
 export {
     signup,
     login,
     verifyEmail,
     forgotPassword,
     verifyOTP,
-    resetPassword
+    resetPassword,
+    getUserName
 }
