@@ -4,9 +4,7 @@ import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 dotenv.config()
 
-
 export const sendEmail = async (email) => {
-
     try {
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -22,9 +20,7 @@ export const sendEmail = async (email) => {
                 subject: "Hello ✔", 
                 html: emailHtml(token) 
             })
-    
         })
-        
     } catch (error) {
         res.status(400).send({message: error.message})
     }

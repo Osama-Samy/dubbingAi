@@ -22,12 +22,12 @@ const signup = async (req, res) => {
         // check if email already exists
         const emailExist = await User.findOne({email: req.body.email})
         if (emailExist) {
-            return res.status(400).send({message: "Email already exists"})
+            return res.status(400).send({message: "Email already exists, please use a different email"})
         }
 
         sendEmail(req.body.email)
         await user.save()
-        res.status(200).send({message: "User created"})
+        res.status(200).send({message: "User created, please check your email for verification"})
         }
         catch (error) {
             res.status(400).send({message: error.message})
@@ -49,7 +49,7 @@ const login = async (req, res) => {
             return res.status(400).send({message: "Please verify your email"})
         }
         jwt.sign({userId: user._id, username: user.username}, "process.env.KEY", (err, token) => {
-            res.status(200).json({message: "Login successful", token})
+            res.status(200).json({message: "Login successful", token, userId: user._id})
         })
     }
 
@@ -111,9 +111,8 @@ const resetPassword = async (req, res) => {
 
     try {
     const decoded = jwt.verify(token, process.env.KEY)
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    await User.updateOne({ email: decoded.email }, { password: hashedPassword })
+    await User.updateOne({ email: decoded.email }, { password: newPassword })
     res.json({ message: "Password updated successfully" })
     } catch (error) {
     res.status(400).json({ message: "Invalid or expired token", error })
@@ -121,13 +120,52 @@ const resetPassword = async (req, res) => {
 } 
 
 // get userName of a user
-const getUserName = async (req, res) => {
+
+const getUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId)
-        res.json(user.username)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: "Something went wrong." })
+        const user = await User.findById(req.params.userId).select("-password")
+    if (!user) return res.status(404).json({ message: "User not found" })
+        res.json(user)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}  
+
+const updateUser = async (req, res) => {
+    
+    const {error} = userValidation.validate(req.body)
+    if (error) {
+        return res.status(400).json({message: error.details[0].message})
+    } else {
+    try {
+    const { username, email, password } = req.body
+    let user = await User.findById(req.params.userId)
+    if (!user) return res.status(404).json({ message: "User not found" })
+
+    if (username) user.username = username
+
+    if (email) {
+        
+        // check if email already exists
+        const emailExist = await User.findOne({email: req.body.email})
+        if (emailExist) {
+            return res.status(400).send({message: "Email already exists, please use a different email"})
+        }
+        user.email = email
+        sendEmail(req.body.email)
+    }
+
+    if (password) user.password = password
+
+    await user.save()
+    res.json({ message: "User updated successfully", user: { 
+        _id: user._id, 
+        username: user.username, 
+        email: user.email 
+    }})
+    } catch (err) {
+    res.status(500).json({ error: err.message })
+    }
     }
 }
 
@@ -138,5 +176,6 @@ export {
     forgotPassword,
     verifyOTP,
     resetPassword,
-    getUserName
+    getUser,
+    updateUser
 }
