@@ -30,4 +30,9 @@ userSchema.pre('save', function () {
     this.password = bcrypt.hashSync(this.password, 10)
 })
 
+userSchema.methods.changePassword = function (newPassword) {
+    this.password = bcrypt.hashSync(newPassword, 10)
+    return this.save()
+}
+
 export const User = mongoose.model('User', userSchema)

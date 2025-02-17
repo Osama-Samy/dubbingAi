@@ -110,17 +110,18 @@ const resetPassword = async (req, res) => {
     let { token } = req.headers
 
     try {
-    const decoded = jwt.verify(token, process.env.KEY)
+        const decoded = jwt.verify(token, process.env.KEY)
+        const hashedPassword = bcrypt.hashSync(newPassword, 10)
 
-    await User.updateOne({ email: decoded.email }, { password: newPassword })
-    res.json({ message: "Password updated successfully" })
+        await User.updateOne({ email: decoded.email }, { password: hashedPassword })
+
+        res.json({ message: "Password updated successfully" })
     } catch (error) {
-    res.status(400).json({ message: "Invalid or expired token", error })
+        res.status(400).json({ message: "Invalid or expired token", error })
     }
 } 
 
 // get userName of a user
-
 const getUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId).select("-password")
