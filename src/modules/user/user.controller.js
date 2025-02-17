@@ -154,6 +154,7 @@ const updateUser = async (req, res) => {
         user.email = email
         sendEmail(req.body.email)
     }
+    
 
     if (password) user.password = password
 
