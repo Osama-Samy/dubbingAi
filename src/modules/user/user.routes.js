@@ -13,9 +13,9 @@ userRouter.post("/verify-otp", verifyOTP)
 userRouter.post("/reset-password", resetPassword)
 
 // get user data
-userRouter.get("/getuser/:userId", verifyToken, getUser)
+userRouter.get("/getuser", verifyToken, getUser)
 
 // update user data
-userRouter.patch("/updateuser/:userId", verifyToken, updateUser)
+userRouter.patch("/updateuser", verifyToken, updateUser)
 
 export default userRouter

@@ -10,7 +10,7 @@ const videoSubtitle = async (req, res) => {
         return res.status(400).json({ message: error.details[0].message })
     }
 
-    const { userId } = req.body
+    let userId = req.userId
     if (!userId) {
         return res.status(400).json({ error: "userId is required." })
     }
@@ -40,7 +40,6 @@ const videoSubtitle = async (req, res) => {
         res.json({ message: "Video processed and uploaded successfully", videoUrl })
 
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -62,7 +61,6 @@ const deleteVideoSubtitle = async (req, res) => {
 
         res.json({ message: "Deleted successfully"})
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -70,10 +68,9 @@ const deleteVideoSubtitle = async (req, res) => {
 // Get all video subtitle of a user
 const getAllVideoSubtitle = async (req, res) => {
     try {
-        const video = await VideoSubtitle.find({ userId: req.params.userId })
+        const video = await VideoSubtitle.find({ userId: req.userId })
         res.json(video)
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -84,7 +81,6 @@ const changeName = async (req, res) => {
         const video = await VideoSubtitle.findByIdAndUpdate(req.params.videoSubtitleId, { name: req.body.name }, { new: true })
         res.json(video)
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }

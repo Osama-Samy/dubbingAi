@@ -7,7 +7,7 @@ const videoDubbingRouter = Router()
 
 videoDubbingRouter.post("/video-dubbing", verifyToken, upload.single('video'), videoDubbing)
 
-videoDubbingRouter.get("/video-dubbing/:userId", verifyToken, getAllVideoDubbing)
+videoDubbingRouter.get("/video-dubbing", verifyToken, getAllVideoDubbing)
 
 videoDubbingRouter.patch("/video-dubbing/:videoDubbingId", verifyToken, changeName)
 

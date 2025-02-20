@@ -8,7 +8,7 @@ textToSpeechRouter.post("/text-to-speech-en", verifyToken, textToSpeechEN)
 
 textToSpeechRouter.post("/text-to-speech-ar", verifyToken, textToSpeechAR)
 
-textToSpeechRouter.get("/text-to-speech/:userId", verifyToken, getAllTextToSpeech)
+textToSpeechRouter.get("/text-to-speech", verifyToken, getAllTextToSpeech)
 
 textToSpeechRouter.delete("/text-to-speech/:textToSpeechId", verifyToken, deleteOneTextToSpeech)
 

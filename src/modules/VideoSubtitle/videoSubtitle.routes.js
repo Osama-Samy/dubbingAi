@@ -7,7 +7,7 @@ const videoSubtitleRouter = Router()
 
 videoSubtitleRouter.post("/video-subtitle", verifyToken, upload.single('video'), videoSubtitle)
 
-videoSubtitleRouter.get("/video-subtitle/:userId", verifyToken, getAllVideoSubtitle)
+videoSubtitleRouter.get("/video-subtitle", verifyToken, getAllVideoSubtitle)
 
 videoSubtitleRouter.patch("/video-subtitle/:videoSubtitleId", verifyToken, changeName)
 

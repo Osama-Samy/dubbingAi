@@ -10,7 +10,8 @@ const textToSpeechEN = async (req, res) => {
         return res.status(400).json({ message: error.details[0].message })
     }
 
-    const { text, userId } = req.body
+    const text = req.body
+    let userId = req.userId
     if (!text || !userId) {
         return res.status(400).json({ error: "Text and userId are required" })
     }
@@ -37,7 +38,6 @@ const textToSpeechEN = async (req, res) => {
         res.json({ message: "Speech generated successfully", audioUrl })
 
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -50,7 +50,8 @@ const textToSpeechAR = async (req, res) => {
     }
 
     try {
-        const { text, userId } = req.body
+        const text= req.body
+        let userId = req.userId
         if (!text || !userId) {
             return res.status(400).json({ error: "Text and userId are required." })
         }
@@ -76,7 +77,6 @@ const textToSpeechAR = async (req, res) => {
         res.json({ message: "Speech generated successfully.", audioUrl })
 
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -84,10 +84,9 @@ const textToSpeechAR = async (req, res) => {
 // Get all text to speech
 const getAllTextToSpeech = async (req, res) => {
     try {
-        const speech = await Speech.find({ userId: req.params.userId })
+        const speech = await Speech.find({ userId: req.userId })
         res.json(speech)
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -112,7 +111,6 @@ const deleteOneTextToSpeech = async (req, res) => {
 
         res.json({ message: "Deleted successfully", speech })
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }
@@ -124,7 +122,6 @@ const changeName = async (req, res) => {
         const speech = await Speech.findByIdAndUpdate(req.params.textToSpeechId, { name: req.body.name }, { new: true })
         res.json(speech)
     } catch (error) {
-        console.error(error)
         res.status(500).json({ error: "Something went wrong." })
     }
 }

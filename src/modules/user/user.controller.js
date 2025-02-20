@@ -124,7 +124,7 @@ const resetPassword = async (req, res) => {
 // get userName of a user
 const getUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select("-password")
+        const user = await User.findById(req.userId).select("-password").select("-_id")
     if (!user) return res.status(404).json({ message: "User not found" })
         res.json(user)
     } catch (err) {
@@ -133,14 +133,10 @@ const getUser = async (req, res) => {
 }  
 
 const updateUser = async (req, res) => {
-    
-    const {error} = userValidation.validate(req.body)
-    if (error) {
-        return res.status(400).json({message: error.details[0].message})
-    } else {
+
     try {
     const { username, email, password } = req.body
-    let user = await User.findById(req.params.userId)
+    let user = await User.findById(req.userId)
     if (!user) return res.status(404).json({ message: "User not found" })
 
     if (username) user.username = username
@@ -160,8 +156,7 @@ const updateUser = async (req, res) => {
     if (password) user.password = password
 
     await user.save()
-    res.json({ message: "User updated successfully", user: { 
-        _id: user._id, 
+    res.json({ message: "User updated successfully", user: {  
         username: user.username, 
         email: user.email 
     }})
@@ -169,7 +164,6 @@ const updateUser = async (req, res) => {
     res.status(500).json({ error: err.message })
     }
     }
-}
 
 export {
     signup,
