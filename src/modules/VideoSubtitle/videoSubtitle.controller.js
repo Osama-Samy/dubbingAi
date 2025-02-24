@@ -1,14 +1,9 @@
 import axios from "axios"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
 import { VideoSubtitle } from "../../../database/models/videoSubtitle.js"
-import videoSubtitleValidation from "./videoSubtitle.validation.js"
 
 // Process video and upload to Cloudinary
 const videoSubtitle = async (req, res) => {
-    const { error } = videoSubtitleValidation.validate(req.body)
-    if (error) {
-        return res.status(400).json({ message: error.details[0].message })
-    }
 
     let userId = req.userId
     if (!userId) {
@@ -79,7 +74,7 @@ const getAllVideoSubtitle = async (req, res) => {
 const changeName = async (req, res) => {
     try {
         const video = await VideoSubtitle.findByIdAndUpdate(req.params.videoSubtitleId, { name: req.body.name }, { new: true })
-        res.json(video)
+        res.json({ message: "Name changed successfully" })
     } catch (error) {
         res.status(500).json({ error: "Something went wrong." })
     }

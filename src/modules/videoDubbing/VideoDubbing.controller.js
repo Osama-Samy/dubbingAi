@@ -1,15 +1,10 @@
 import axios from "axios"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
-import VideoDubbingValidation from "./VideoDubbing.validation.js"
 import { VideoDubbing } from "../../../database/models/videoDubbing.js"
 
 
 // Process video and upload to Cloudinary
 const videoDubbing = async (req, res) => {
-    const { error } = VideoDubbingValidation.validate(req.body)
-    if (error) {
-        return res.status(400).json({ message: error.details[0].message })
-    }
 
     let userId = req.userId
     if (!userId) {

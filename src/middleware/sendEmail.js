@@ -17,7 +17,7 @@ export const sendEmail = async (email) => {
             const info = await transporter.sendMail({
                 from: '"Osama Samy"0111317osama@gmail.com',
                 to: email, 
-                subject: "Hello ✔", 
+                subject: "Hello, Please Verify DubMaster Ai Email✔", 
                 html: emailHtml(token) 
             })
         })

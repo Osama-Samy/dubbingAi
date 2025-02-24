@@ -42,6 +42,7 @@ const textToSpeechEN = async (req, res) => {
     }
 }
 
+
 // Arabic Text to Speech
 const textToSpeechAR = async (req, res) => {
     const { error } = speechValidation.validate(req.body)
@@ -109,7 +110,7 @@ const deleteOneTextToSpeech = async (req, res) => {
         // Delete data from Database
         await Speech.findByIdAndDelete(req.params.textToSpeechId)
 
-        res.json({ message: "Deleted successfully", speech })
+        res.json({ message: "Deleted successfully" })
     } catch (error) {
         res.status(500).json({ error: "Something went wrong." })
     }
@@ -120,7 +121,7 @@ const deleteOneTextToSpeech = async (req, res) => {
 const changeName = async (req, res) => {
     try {
         const speech = await Speech.findByIdAndUpdate(req.params.textToSpeechId, { name: req.body.name }, { new: true })
-        res.json(speech)
+        res.json({ message: "Name changed successfully" })
     } catch (error) {
         res.status(500).json({ error: "Something went wrong." })
     }

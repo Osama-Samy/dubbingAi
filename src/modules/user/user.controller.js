@@ -49,7 +49,7 @@ const login = async (req, res) => {
             return res.status(400).send({message: "Please verify your email"})
         }
         jwt.sign({userId: user._id, username: user.username}, "process.env.KEY", (err, token) => {
-            res.status(200).json({message: "Login successful", token, userId: user._id})
+            res.status(200).json({message: "Login successful", token})
         })
     }
 
