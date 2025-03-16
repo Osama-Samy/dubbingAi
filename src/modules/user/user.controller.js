@@ -104,22 +104,32 @@ const verifyOTP = async (req, res) => {
     }
 }
 
-  // reset password
-const resetPassword = async (req, res) => {
-    const { newPassword } = req.body
+  // change password
+const changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body
     let { token } = req.headers
 
     try {
         const decoded = jwt.verify(token, process.env.KEY)
-        const hashedPassword = bcrypt.hashSync(newPassword, 10)
+        const user = await User.findOne({ email: decoded.email })
 
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password)
+        if (!isMatch) {
+            return res.status(400).json({ message: "Old password is incorrect" })
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
         await User.updateOne({ email: decoded.email }, { password: hashedPassword })
 
         res.json({ message: "Password updated successfully" })
     } catch (error) {
         res.status(400).json({ message: "Invalid or expired token", error })
     }
-} 
+}
 
 // get userName of a user
 const getUser = async (req, res) => {
@@ -135,7 +145,7 @@ const getUser = async (req, res) => {
 const updateUser = async (req, res) => {
 
     try {
-    const { username, email, password } = req.body
+    const { username, email } = req.body
     let user = await User.findById(req.userId)
     if (!user) return res.status(404).json({ message: "User not found" })
 
@@ -152,9 +162,6 @@ const updateUser = async (req, res) => {
         sendEmail(req.body.email)
     }
     
-
-    if (password) user.password = password
-
     await user.save()
     res.json({ message: "User updated successfully", user: {  
         username: user.username, 
@@ -171,7 +178,7 @@ export {
     verifyEmail,
     forgotPassword,
     verifyOTP,
-    resetPassword,
+    changePassword,
     getUser,
     updateUser
 }

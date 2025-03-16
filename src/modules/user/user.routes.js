@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { signup, login, verifyEmail, forgotPassword, verifyOTP, resetPassword, getUser, updateUser } from "./user.controller.js"
+import { signup, login, verifyEmail, forgotPassword, verifyOTP, changePassword, getUser, updateUser } from "./user.controller.js"
 import { verifyToken } from "../../middleware/verifyToken.js"
 
 const userRouter = Router()
@@ -10,7 +10,7 @@ userRouter.get('/verifyEmail/:token', verifyEmail)
 
 userRouter.post("/forgot-password", forgotPassword)
 userRouter.post("/verify-otp", verifyOTP)
-userRouter.post("/reset-password", resetPassword)
+userRouter.post("/change-password", changePassword)
 
 // get user data
 userRouter.get("/getuser", verifyToken, getUser)
