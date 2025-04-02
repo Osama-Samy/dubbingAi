@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { signup, login, verifyEmail, forgotPassword, verifyOTP, changePassword, getUser, updateUser } from "./user.controller.js"
+import { signup, login, verifyEmail, forgotPassword, verifyOTP, changePassword, getUser, updateUser, deleteUser } from "./user.controller.js"
 import { verifyToken } from "../../middleware/verifyToken.js"
 
 const userRouter = Router()
@@ -17,5 +17,7 @@ userRouter.get("/getuser", verifyToken, getUser)
 
 // update user data
 userRouter.patch("/updateuser", verifyToken, updateUser)
+
+userRouter.delete("/deleteuser", verifyToken, deleteUser)
 
 export default userRouter

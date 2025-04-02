@@ -15,8 +15,6 @@ app.use("/speech", textToSpeechRouter)
 app.use("/subtitle", videoSubtitleRouter)
 app.use("/dubbing", videoDubbingRouter)
 
-console.log(process.env.MONGODB_URI)
-
 app.use("*", (req, res) => {
     res.status(404).send({message: "Page Not Found"})
 })
