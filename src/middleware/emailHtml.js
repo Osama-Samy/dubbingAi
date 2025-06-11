@@ -261,7 +261,7 @@ export const emailHtml = (token) => {
                                 <table border="0" cellpadding="0" cellspacing="0">
                                 <tbody>
                                     <tr>
-                                    <td> <a href="http://localhost:3000/user/verifyEmail/${token}" target="_blank">confirm email</a> </td>
+                                    <td> <a href="https://dubmasterai-b7a4fhcah7bhe9dm.uaenorth-01.azurewebsites.net/user/verifyEmail/${token}" target="_blank">confirm email</a> </td>
                                     </tr>
                                 </tbody>
                                 </table>
