@@ -3,133 +3,166 @@ import axios from "axios"
 import speechValidation from "./textToSpeech.validation.js"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
 
-// English Text to Speech
-const textToSpeechEN = async (req, res) => {
+// Unified Text-to-Speech handler that selects model/API based on language
+const textToSpeech = async (req, res) => {
+    // Validate request body
     const { error } = speechValidation.validate(req.body)
     if (error) {
         return res.status(400).json({ message: error.details[0].message })
     }
 
-    const text = req.body
-    let userId = req.userId
+    const { text } = req.body
+    const userId = req.userId
+    const language = req.body.language
+
     if (!text || !userId) {
         return res.status(400).json({ error: "Text and userId are required" })
     }
-    
+
     try {
-        // Send text to AI API
-        const aiResponse = await axios.post(
-            "https://api.example.com/text-to-speech",
-            { text },
-            { responseType: "arraybuffer" } // Set response type to arrayـBuffer
-        )
+        let aiResponse
+
+        // Select TTS model/API based on language
+        if (language === "en") {
+            // English API
+            aiResponse = await axios.post(
+                "https://english-tts-api.example.com/generate",
+                { text },
+                {
+                    responseType: "arraybuffer",
+                    timeout: 10000
+                }
+            )
+            res.json({
+            success: true,
+            aiResult: aiResponse.data
+        })
+        } else if (language === "ar") {
+            // Arabic API
+            aiResponse = await axios.post(
+                "https://arabic-tts-api.example.com/generate",
+                { text },
+                {
+                    responseType: "arraybuffer",
+                    timeout: 10000
+                }
+            )
+            res.json({
+            success: true,
+            aiResult: aiResponse.data
+        })
+        } else {
+            return res.status(400).json({ error: "Unsupported language" })
+        }
 
         if (!aiResponse.data) {
-            return res.status(500).json({ error: "AI model failed to generate speech." })
+            throw new Error("Failed to generate audio from AI service")
         }
 
         // Upload audio file to Cloudinary
-        const audioUrl = await uploadToCloudinary(aiResponse.data)
-
-        // Save data to Database
-        const newSpeech = new Speech({ userId, text, audioUrl })
-        await newSpeech.save()
-
-        res.json({ message: "Speech generated successfully", audioUrl })
-
-    } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
-    }
-}
-
-
-// Arabic Text to Speech
-const textToSpeechAR = async (req, res) => {
-    const { error } = speechValidation.validate(req.body)
-    if (error) {
-        return res.status(400).json({ message: error.details[0].message })
-    }
-
-    try {
-        const text= req.body
-        let userId = req.userId
-        if (!text || !userId) {
-            return res.status(400).json({ error: "Text and userId are required." })
-        }
-
-        // Send text to AI API
-        const aiResponse = await axios.post(
-            "https://api.example.com/text-to-speech",
-            { text },
-            { responseType: "arraybuffer" }
+        const { public_id, secure_url } = await uploadToCloudinary(
+            aiResponse.data,
+            "audio/wav",
+            { resource_type: "audio", folder: "text_to_speech" }
         )
+        
 
-        if (!aiResponse.data) {
-            return res.status(500).json({ error: "AI model failed to generate speech." })
-        }
-
-        // Upload audio file to Cloudinary
-        const audioUrl = await uploadToCloudinary(aiResponse.data)
-
-        // Save data to Database
-        const newSpeech = new Speech({ userId, text, audioUrl })
-        await newSpeech.save()
-
-        res.json({ message: "Speech generated successfully.", audioUrl })
+        // Save record in the database in the background
+        Speech.create({
+            userId,
+            text,
+            audioUrl: secure_url,
+            public_id
+        })
 
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(error.response?.status || 500).json({
+            error: error.response?.data?.message || "Internal server error"
+        })
     }
 }
 
-// Get all text to speech
+// Get all TTS records for the authenticated user
 const getAllTextToSpeech = async (req, res) => {
     try {
-        const speech = await Speech.find({ userId: req.userId })
-        res.json(speech)
+        const speeches = await Speech.find({ userId: req.userId })
+            .select("-public_id -__v")
+            .sort({ createdAt: -1 })
+
+        res.json({ count: speeches.length, data: speeches })
+
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({ error: "Failed to retrieve records" })
     }
 }
 
-// Delete text to speech
+// Delete a specific TTS record
 const deleteOneTextToSpeech = async (req, res) => {
     try {
-        const speech = await Speech.findById(req.params.textToSpeechId)
+        // Find the record and ensure it belongs to the authenticated user
+        const speech = await Speech.findOne({
+            _id: req.params.textToSpeechId,
+            userId: req.userId
+        })
 
         if (!speech) {
-            return res.status(404).json({ error: "Speech not found." })
+            return res.status(404).json({ error: "Speech record not found" })
         }
 
-        // Get public_id from audioUrl to delete the file from Cloudinary
-        const public_id = speech.audioUrl.split("/").pop().split(".")[0]
+        // Delete the audio file from Cloudinary
+        await cloudinary.uploader.destroy(speech.public_id)
 
-        // Delete file from Cloudinary using public_id
-        await cloudinary.uploader.destroy(public_id)
+        // Delete the record from the database
+        await Speech.deleteOne({ _id: speech._id })
 
-        // Delete data from Database
-        await Speech.findByIdAndDelete(req.params.textToSpeechId)
+        res.json({
+            success: true,
+            message: "Record deleted successfully"
+        })
 
-        res.json({ message: "Deleted successfully" })
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({
+            error: "Failed to delete record. Please try again."
+        })
     }
 }
 
-
-// Change name of text to speech
+// Change the name/title of a TTS record
 const changeName = async (req, res) => {
     try {
-        const speech = await Speech.findByIdAndUpdate(req.params.textToSpeechId, { name: req.body.name }, { new: true })
-        res.json({ message: "Name changed successfully" })
+        const { name } = req.body
+        if (!name?.trim()) {
+            return res.status(400).json({ error: "Name is required" })
+        }
+
+        // Update the record if it belongs to the authenticated user
+        const updatedSpeech = await Speech.findOneAndUpdate(
+            {
+                _id: req.params.textToSpeechId,
+                userId: req.userId
+            },
+            { name },
+            { new: true, runValidators: true }
+        ).select("-public_id -__v")
+
+        if (!updatedSpeech) {
+            return res.status(404).json({ error: "Record not found" })
+        }
+
+        res.json({
+            success: true,
+            data: updatedSpeech
+        })
+
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({
+            error: "Failed to update name. Please try again."
+        })
     }
 }
 
-export { 
-    textToSpeechEN,
-    textToSpeechAR,
+export {
+    textToSpeech,
     getAllTextToSpeech,
     deleteOneTextToSpeech,
     changeName

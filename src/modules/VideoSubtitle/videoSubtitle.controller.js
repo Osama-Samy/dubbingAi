@@ -2,85 +2,113 @@ import axios from "axios"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
 import { VideoSubtitle } from "../../../database/models/videoSubtitle.js"
 
-// Process video and upload to Cloudinary
+// Process video for subtitles and upload to Cloudinary
 const videoSubtitle = async (req, res) => {
-
-    let userId = req.userId
-    if (!userId) {
-        return res.status(400).json({ error: "userId is required." })
-    }
+    const userId = req.userId
+    if (!userId) return res.status(401).json({ error: "User authentication required." })
+    if (!req.file) return res.status(400).json({ error: "No video file uploaded." })
 
     try {
-        // Get the video buffer from Multer
-        const videoBuffer = req.file.buffer  // Video content
-
-        // Send the video to the AI API for processing
+        // Process video via AI API
         const aiResponse = await axios.post(
-            "https://api.example.com/video-processing", 
-            videoBuffer, 
-            { headers: { 'Content-Type': 'video/mp4' }, responseType: "arraybuffer" }
+            "https://api.example.com/video-processing",
+            req.file.buffer,
+            {
+                headers: { 'Content-Type': 'video/mp4' },
+                responseType: "arraybuffer",
+                timeout: 45000
+            }
+        )
+        res.json({
+            success: true,
+            aiResult: aiResponse.data
+        })
+
+        // Upload processed video to Cloudinary
+        const { public_id, secure_url } = await uploadToCloudinary(
+            aiResponse.data,
+            "video",
+            { resource_type: "video", folder: "subtitled_videos" }
         )
 
-        if (!aiResponse.data) {
-            return res.status(500).json({ error: "AI model failed to process video." })
-        }
 
-        // Upload the processed video to Cloudinary
-        const videoUrl = await uploadToCloudinary(aiResponse.data)
-
-        // Save video data in MongoDB
-        const newVideo = new VideoSubtitle({ userId, videoUrl })
-        await newVideo.save()
-
-        res.json({ message: "Video processed and uploaded successfully", videoUrl })
+        // Save video data to MongoDB in the background (do not await)
+        VideoSubtitle.create({
+            userId,
+            videoUrl: secure_url,
+            public_id
+        })
 
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        const status = error.response?.status || 500
+        const message = error.response?.data?.message || "Failed to process the video."
+        res.status(status).json({ error: message })
     }
 }
 
-// Delete video from Cloudinary and MongoDB
+// Delete video subtitle from Cloudinary and MongoDB
 const deleteVideoSubtitle = async (req, res) => {
     try {
-        const video = await videoSubtitle.findById(req.params.videoSubtitleId)
+        const video = await VideoSubtitle.findOneAndDelete({
+            _id: req.params.id,
+            userId: req.userId
+        })
+        if (!video) return res.status(404).json({ error: "Video not found." })
 
-        if (!video) {
-            return res.status(404).json({ error: "Video not found." })
-        }
+        await cloudinary.uploader.destroy(video.public_id, { resource_type: "video" })
 
-        const public_id = video.videoUrl.split("/").pop().split(".")[0]
+        res.json({ success: true, message: "Video deleted successfully." })
 
-        await cloudinary.uploader.destroy(public_id)
-
-        await VideoSubtitle.findByIdAndDelete(req.params.videoSubtitleId)
-
-        res.json({ message: "Deleted successfully"})
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({ error: "Error deleting the video." })
     }
 }
 
-// Get all video subtitle of a user
+// Get all video subtitle records for the user with pagination
 const getAllVideoSubtitle = async (req, res) => {
     try {
-        const video = await VideoSubtitle.find({ userId: req.userId })
-        res.json(video)
+        const page = Math.max(1, parseInt(req.query.page) || 1)
+        const limit = Math.min(50, parseInt(req.query.limit) || 10)
+
+        const result = await VideoSubtitle.paginate(
+            { userId: req.userId },
+            { page, limit, sort: { createdAt: -1 }, select: "-public_id -__v" }
+        )
+
+        res.json({
+            page: result.page,
+            totalPages: result.totalPages,
+            totalItems: result.totalDocs,
+            data: result.docs
+        })
+
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({ error: "Error retrieving videos." })
     }
 }
 
-// Change name of text to speech
+// Change the name/title of a video subtitle record
 const changeName = async (req, res) => {
     try {
-        const video = await VideoSubtitle.findByIdAndUpdate(req.params.videoSubtitleId, { name: req.body.name }, { new: true })
-        res.json({ message: "Name changed successfully" })
+        const { name } = req.body
+        if (!name?.trim()) return res.status(400).json({ error: "Name is required." })
+
+        const video = await VideoSubtitle.findOneAndUpdate(
+            { _id: req.params.id, userId: req.userId },
+            { name },
+            { new: true, runValidators: true }
+        ).select("-public_id -__v")
+
+        if (!video) return res.status(404).json({ error: "Video not found." })
+
+        res.json({ success: true, data: video })
+
     } catch (error) {
-        res.status(500).json({ error: "Something went wrong." })
+        res.status(500).json({ error: "Error updating the name." })
     }
 }
 
-export { 
+export {
     videoSubtitle,
     deleteVideoSubtitle,
     getAllVideoSubtitle,

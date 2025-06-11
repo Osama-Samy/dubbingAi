@@ -3,8 +3,8 @@ import userRouter from "./src/modules/user/user.routes.js"
 import { connectDB } from "./database/dbCon.js"
 import textToSpeechRouter from "./src/modules/textToSpeech/textToSpeech.routes.js"
 import dotenv from "dotenv"
-import videoSubtitleRouter from "./src/modules/videoDubbing/VideoDubbing.routes.js"
 import videoDubbingRouter from "./src/modules/videoDubbing/VideoDubbing.routes.js"
+import videoSubtitleRouter from "./src/modules/VideoSubtitle/videoSubtitle.routes.js"
 dotenv.config()
 
 const app = express()

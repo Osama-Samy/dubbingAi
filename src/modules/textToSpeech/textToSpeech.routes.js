@@ -1,12 +1,10 @@
 import { verifyToken } from "../../middleware/verifyToken.js"
-import { textToSpeechEN, textToSpeechAR, getAllTextToSpeech, deleteOneTextToSpeech, changeName } from "./textToSpeech.controller.js";
+import { textToSpeech, getAllTextToSpeech, deleteOneTextToSpeech, changeName } from "./textToSpeech.controller.js";
 import { Router } from "express"
 
 const textToSpeechRouter = Router()
 
-textToSpeechRouter.post("/text-to-speech-en", verifyToken, textToSpeechEN)
-
-textToSpeechRouter.post("/text-to-speech-ar", verifyToken, textToSpeechAR)
+textToSpeechRouter.post("/text-to-speech", verifyToken, textToSpeech)
 
 textToSpeechRouter.get("/text-to-speech", verifyToken, getAllTextToSpeech)
 
