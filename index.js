@@ -15,6 +15,10 @@ app.use("/speech", textToSpeechRouter)
 app.use("/subtitle", videoSubtitleRouter)
 app.use("/dubbing", videoDubbingRouter)
 
+app.use("/", (req, res) => {
+    res.status(404).send({message: "Hello, Welcome to the AI API"})
+})
+
 app.use("*", (req, res) => {
     res.status(404).send({message: "Page Not Found"})
 })
