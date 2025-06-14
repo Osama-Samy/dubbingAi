@@ -10,18 +10,21 @@ cloudinary.config({
 })
 
 
-export const uploadToCloudinary = (buffer, options = { resource_type: "auto" }) => {
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-            options,
-            (error, result) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result) // Includes secure_url, public_id, etc.
-                }
-            }
-        )
-        uploadStream.end(buffer)
+export const uploadToCloudinary = async (buffer, extension = "mp3", options = {}) => {
+    const mimeTypes = {
+        mp3: "audio/mpeg",
+        wav: "audio/wav",
+        mp4: "video/mp4",
+        webm: "video/webm"
+    }
+
+    const mimeType = mimeTypes[extension] || "application/octet-stream"
+    const base64Data = buffer.toString("base64")
+    const dataURI = `data:${mimeType};base64,${base64Data}`
+
+    return await cloudinary.uploader.upload(dataURI, {
+        resource_type: mimeType.startsWith("video") ? "video" : "auto",
+        ...options
     })
 }
+

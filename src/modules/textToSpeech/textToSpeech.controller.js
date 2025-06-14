@@ -2,85 +2,85 @@ import Speech from "../../../database/models/textToSpeech.model.js"
 import axios from "axios"
 import speechValidation from "./textToSpeech.validation.js"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
+import dotenv from "dotenv"
+dotenv.config()
 
-// Unified Text-to-Speech handler that selects model/API based on language
 const textToSpeech = async (req, res) => {
-    // Validate request body
     const { error } = speechValidation.validate(req.body)
     if (error) {
         return res.status(400).json({ message: error.details[0].message })
     }
 
-    const { text } = req.body
+    const { text, language } = req.body
     const userId = req.userId
-    const language = req.body.language
-
     if (!text || !userId) {
         return res.status(400).json({ error: "Text and userId are required" })
     }
 
+    const apiKey = process.env.TTS_API_KEY
+    const endpoint = process.env.TTS_API_ENDPOINT
+    
+    let selectedVoice = ""
+    let langCode = ""
+
+    if (language === "ar") {
+        selectedVoice = "ar-EG-ShakirNeural"
+        langCode = "ar-EG"
+    } else if (language === "en") {
+        selectedVoice = "en-US-GuyNeural"
+        langCode = "en-US"
+    } else {
+        return res.status(400).json({ error: "Unsupported language" })
+    }
+
+    const ssml = `
+<speak version='1.0' xml:lang='${langCode}'>
+    <voice xml:lang='${langCode}' name='${selectedVoice}'>
+    ${text}
+    </voice>
+</speak>`.trim()
+
     try {
-        let aiResponse
-
-        // Select TTS model/API based on language
-        if (language === "en") {
-            // English API
-            aiResponse = await axios.post(
-                "https://english-tts-api.example.com/generate",
-                { text },
-                {
-                    responseType: "arraybuffer",
-                    timeout: 10000
-                }
-            )
-            res.json({
-            success: true,
-            aiResult: aiResponse.data
+        const response = await axios.post(endpoint, ssml, {
+            headers: {
+                "Ocp-Apim-Subscription-Key": apiKey,
+                "Content-Type": "application/ssml+xml",
+                "X-Microsoft-OutputFormat": "audio-16khz-32kbitrate-mono-mp3",
+                "User-Agent": "text-to-speech-client"
+            },
+            responseType: "arraybuffer"
         })
-        } else if (language === "ar") {
-            // Arabic API
-            aiResponse = await axios.post(
-                "https://arabic-tts-api.example.com/generate",
-                { text },
-                {
-                    responseType: "arraybuffer",
-                    timeout: 10000
-                }
-            )
-            res.json({
-            success: true,
-            aiResult: aiResponse.data
-        })
-        } else {
-            return res.status(400).json({ error: "Unsupported language" })
-        }
 
-        if (!aiResponse.data) {
-            throw new Error("Failed to generate audio from AI service")
-        }
+        const audioBuffer = Buffer.from(response.data)
 
-        // Upload audio file to Cloudinary
         const { public_id, secure_url } = await uploadToCloudinary(
-            aiResponse.data,
-            "audio/wav",
-            { resource_type: "audio", folder: "text_to_speech" }
+            audioBuffer,
+            "audio/mp3",
+            { resource_type: "video", folder: "text_to_speech" }
         )
-        
 
-        // Save record in the database in the background
-        Speech.create({
+        await Speech.create({
             userId,
             text,
             audioUrl: secure_url,
             public_id
         })
 
+        res.status(201).json({ success: true, audioUrl: secure_url })
+
     } catch (error) {
+        console.error("TTS error:", {
+            status: error.response?.status,
+            headers: error.response?.headers,
+            data: error.response?.data,
+            message: error.message
+        })
         res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || "Internal server error"
+            error: "TTS request failed"
         })
     }
 }
+
 
 // Get all TTS records for the authenticated user
 const getAllTextToSpeech = async (req, res) => {
