@@ -119,6 +119,7 @@ const deleteOneTextToSpeech = async (req, res) => {
         })
 
     } catch (error) {
+        console.error("Delete Error:", error); // 👈 اطبع الخطأ في اللوج
         res.status(500).json({
             error: "Failed to delete record. Please try again."
         })
