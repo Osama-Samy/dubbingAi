@@ -174,8 +174,10 @@ const verifyOTP = async (req, res) => {
 
 // get userName of a user
 const getUser = async (req, res) => {
+
     try {
-        const user = await User.findById(req.userId).select("-password").select("-_id")
+        const userId = req.user.userId
+        const user = await User.findById(userId).select("-password").select("-_id")
     if (!user) return res.status(404).json({ message: "User not found" })
         res.json(user)
     } catch (err) {
