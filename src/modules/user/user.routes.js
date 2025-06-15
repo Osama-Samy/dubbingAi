@@ -12,6 +12,8 @@ userRouter.post("/forgot-password", forgotPassword)
 userRouter.post("/verify-otp", verifyOTP)
 userRouter.patch("/change-password", verifyToken, changePassword)
 
+userRouter.patch("/reset-password", verifyToken, resetPassword)
+
 // get user data
 userRouter.get("/getuser", verifyToken, getUser)
 
