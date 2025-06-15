@@ -59,17 +59,18 @@ const login = async (req, res) => {
 }
 
 const verifyEmail = async (req, res) => {
-    try{
-        const email = req.user.email
-    jwt.verify(req.params.token, process.env.KEY, async (err, decoded) => {
-        await User.findOneAndUpdate({email}, {confirmEmail: true})
-        res.status(200).send({message: "Email verified successfully"})
+    try {
+        jwt.verify(req.params.token, process.env.KEY, async (err, decoded) => {
+            if (err) {
+                return res.status(400).send({ message: "Invalid or expired token" })
+            }
+            const email = decoded.email
+            await User.findOneAndUpdate({ email }, { confirmEmail: true })
+            res.status(200).send({ message: "Email verified successfully" })
         })
+    } catch (error) {
+        res.status(400).send({ message: error.message })
     }
-    catch (error) {
-        res.status(400).send({message: error.message})
-    }
-    
 }
 
 
