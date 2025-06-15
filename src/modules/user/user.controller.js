@@ -118,16 +118,41 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email })
     if (!user) return res.status(400).json({ message: "User not found" })
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
     const otpToken = jwt.sign({ email, otp }, process.env.KEY, { expiresIn: "5m" })
 
     try {
-        await sendOTP(email, otp); // لازم تكون عندك دالة sendOTP بتبعت الإيميل
+        await sendOTP(email, otp)
         res.json({ message: "OTP sent successfully", token: otpToken })
     } catch (error) {
         res.status(500).json({ message: "Error sending OTP", error })
     }
-};
+}
+
+// reset password
+const resetPassword = async (req, res) => {
+    const { newPassword } = req.body
+    const token = req.headers['token']
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" })
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.KEY)
+        const user = await User.findOne({ email: decoded.email })
+
+        if (!user) return res.status(404).json({ message: "User not found" })
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+        user.password = hashedPassword
+        await user.save()
+
+        res.json({ message: "Password reset successfully" })
+    } catch (error) {
+        res.status(400).json({ message: "Invalid or expired token" })
+    }
+}
 
 // verify OTP
 const verifyOTP = async (req, res) => {
