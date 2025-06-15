@@ -12,7 +12,7 @@ const textToSpeech = async (req, res) => {
     }
 
     const { text, language } = req.body
-    const userId = req.userId
+    const userId = req.user.userId
     if (!text || !userId) {
         return res.status(400).json({ error: "Text and userId are required" })
     }
