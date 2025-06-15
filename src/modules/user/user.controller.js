@@ -77,40 +77,37 @@ const verifyEmail = async (req, res) => {
   // change password
 const changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body
-
     if (!oldPassword || !newPassword) {
-        return res.status(400).json({ message: "Both old and new passwords are required" })
+    return res.status(400).json({ message: 'Both old and new passwords are required' })
+}
+
+if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'New password must be at least 6 characters' })
+}
+
+if (oldPassword === newPassword) {
+    return res.status(400).json({ message: 'New password cannot be the same as old password' })
+}
+
+try {
+    const userId = req.user.userId
+    const user = await User.findById(userId)
+
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' })
     }
 
-    if (newPassword.length < 6) {
-        return res.status(400).json({ message: "New password must be at least 6 characters" })
+    const isMatch = await user.comparePassword(oldPassword)
+    if (!isMatch) {
+        return res.status(400).json({ message: 'Old password is incorrect' })
     }
 
-    try {
-        const userId = req.user.userId
+    await user.changePassword(newPassword)
 
-        const user = await User.findById(userId)
-        if (!user) {
-            return res.status(404).json({ message: "User not found" })
-        }
-
-        const isMatch = await bcrypt.compare(oldPassword, user.password)
-        if (!isMatch) {
-            return res.status(400).json({ message: "Old password is incorrect" })
-        }
-
-        const isSame = await bcrypt.compare(newPassword, user.password)
-        if (isSame) {
-            return res.status(400).json({ message: "New password cannot be the same as old password" })
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
-        await User.updateOne({ _id: userId }, { password: hashedPassword })
-
-        res.json({ message: "Password updated successfully" })
-    } catch (error) {
-        res.status(500).json({ message: "Something went wrong", error: error.message })
-    }
+    res.json({ message: 'Password updated successfully' })
+} catch (error) {
+    res.status(500).json({ message: 'Something went wrong', error: error.message })
+}
 }
 
 

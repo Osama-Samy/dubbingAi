@@ -26,13 +26,19 @@ const userSchema = new mongoose.Schema({
     }
 }, {timestamps: true, versionKey: false})
 
-userSchema.pre('save', function () {
-    this.password = bcrypt.hashSync(this.password, 10)
+userSchema.pre('save', function (next) {
+    if (!this.isModified('password')) return next()
+        this.password = bcrypt.hashSync(this.password, 10)
+    next()
 })
 
 userSchema.methods.changePassword = function (newPassword) {
-    this.password = bcrypt.hashSync(newPassword, 10)
-    return this.save()
+    this.password = newPassword
+    return this.save() 
+}
+
+userSchema.methods.comparePassword = function (inputPassword) {
+    return bcrypt.compare(inputPassword, this.password)
 }
 
 export const User = mongoose.model('User', userSchema)
