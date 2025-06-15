@@ -134,7 +134,7 @@ const changeName = async (req, res) => {
         const updatedSpeech = await Speech.findOneAndUpdate(
             {
                 _id: req.params.textToSpeechId,
-                userId: req.userId
+                userId: req.user.userId
             },
             { name },
             { new: true, runValidators: true }
