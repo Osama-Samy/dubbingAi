@@ -60,7 +60,7 @@ const login = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
     try{
-    jwt.verify(req.params.token, "process.env.KEY", async (err, decoded) => {
+    jwt.verify(req.params.token, process.env.KEY, async (err, decoded) => {
         await User.findOneAndUpdate({email: decoded.email}, {confirmEmail: true})
         res.status(200).send({message: "Email verified successfully"})
         })
