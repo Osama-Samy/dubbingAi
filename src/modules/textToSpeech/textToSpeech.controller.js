@@ -94,10 +94,13 @@ const getAllTextToSpeech = async (req, res) => {
 // Delete a specific TTS record
 const deleteOneTextToSpeech = async (req, res) => {
     try {
+        // Get userId from the decoded token (middleware should set req.user)
+        const userId = req.user.userId
+
         // Find the record and ensure it belongs to the authenticated user
         const speech = await Speech.findOne({
             _id: req.params.textToSpeechId,
-            userId: req.userId
+            userId: userId
         })
 
         if (!speech) {
@@ -121,6 +124,7 @@ const deleteOneTextToSpeech = async (req, res) => {
         })
     }
 }
+
 
 // Change the name/title of a TTS record
 const changeName = async (req, res) => {
