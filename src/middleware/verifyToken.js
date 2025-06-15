@@ -9,6 +9,7 @@ export const verifyToken = (req, res, next) => {
             return res.status(400).send({message: "invalid token"})
         }
         req.user = decoded
+        email.user = decoded
         next()
     })
 }
