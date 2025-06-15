@@ -13,7 +13,7 @@ export const sendEmail = async (email) => {
                 pass: process.env.EMAIL_PASS, 
             },
         })
-        jwt.sign({email}, "process.env.KEY", async (err, token) => {
+        jwt.sign({email}, process.env.KEY, async (err, token) => {
             const info = await transporter.sendMail({
                 from: '"Osama Samy"0111317osama@gmail.com',
                 to: email, 
