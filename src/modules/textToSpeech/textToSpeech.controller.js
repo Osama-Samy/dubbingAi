@@ -69,12 +69,6 @@ const textToSpeech = async (req, res) => {
         res.status(201).json({ success: true, audioUrl: secure_url })
 
     } catch (error) {
-        console.error("TTS error:", {
-            status: error.response?.status,
-            headers: error.response?.headers,
-            data: error.response?.data,
-            message: error.message
-        })
         res.status(error.response?.status || 500).json({
             error: "TTS request failed"
         })
