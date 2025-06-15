@@ -135,6 +135,40 @@ const resetPassword = async (req, res) => {
         res.status(400).json({ message: "Token expired or invalid" })
     }
 }
+// send OTP to user email for password reset
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpToken = jwt.sign({ email, otp }, process.env.KEY, { expiresIn: "5m" });
+
+    try {
+        await sendOTP(email, otp); // لازم تكون عندك دالة sendOTP بتبعت الإيميل
+        res.json({ message: "OTP sent successfully", token: otpToken });
+    } catch (error) {
+        res.status(500).json({ message: "Error sending OTP", error });
+    }
+};
+
+// verify OTP
+const verifyOTP = async (req, res) => {
+    const { otp } = req.body
+    const token = req.headers['token']
+
+    try {
+        const decoded = jwt.verify(token, process.env.KEY)
+        if (decoded.otp !== otp) return res.status(400).json({ message: "Wrong OTP" })
+
+        const resetToken = jwt.sign({ email: decoded.email }, process.env.KEY, { expiresIn: "5m" })
+        res.json({ message: "OTP verified successfully", resetToken })
+    } catch (error) {
+        res.status(400).json({ message: "OTP expired or invalid" })
+    }
+}
+
 
 // get userName of a user
 const getUser = async (req, res) => {
