@@ -85,7 +85,7 @@ const changePassword = async (req, res) => {
     }
 
     try {
-        const userId = req.user.id // Make sure your middleware adds 'id' to req.user
+        const userId = req.user.id
 
         const user = await User.findById(userId)
         if (!user) {
