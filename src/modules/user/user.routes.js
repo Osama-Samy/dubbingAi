@@ -10,7 +10,7 @@ userRouter.get('/verifyEmail/:token', verifyEmail)
 
 userRouter.post("/forgot-password", forgotPassword)
 userRouter.post("/verify-otp", verifyOTP)
-userRouter.post("/change-password", changePassword)
+userRouter.patch("/change-password", verifyToken, changePassword)
 
 // get user data
 userRouter.get("/getuser", verifyToken, getUser)
