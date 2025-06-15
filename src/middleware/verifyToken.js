@@ -4,7 +4,7 @@ dotenv.config()
 
 export const verifyToken = (req, res, next) => {
     let {token} = req.headers
-    jwt.verify(token, "process.env.KEY", async (err, decoded) => {
+    jwt.verify(token, process.env.KEY, async (err, decoded) => {
         if (err) {
             return res.status(400).send({message: "invalid token"})
         }
