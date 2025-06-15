@@ -75,7 +75,6 @@ const verifyEmail = async (req, res) => {
   // change password
 const changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body
-    const token = req.headers['token']
 
     if (!oldPassword || !newPassword) {
         return res.status(400).json({ message: "Both old and new passwords are required" })
@@ -86,8 +85,8 @@ const changePassword = async (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.KEY)
-        const user = await User.findOne({ email: decoded.email })
+        const email = req.user.email
+        const user = await User.findOne({ email })
 
         if (!user) {
             return res.status(404).json({ message: "User not found" })
@@ -98,58 +97,35 @@ const changePassword = async (req, res) => {
             return res.status(400).json({ message: "Old password is incorrect" })
         }
 
-        // Check if new password is same as old password
         const isSame = await bcrypt.compare(newPassword, user.password)
         if (isSame) {
-            return res.status(400).json({ message: "New password cannot be the same as old password" })
+            return res.status(400).json({ message: "New password cannot be the same as old password" });
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10)
-        await User.updateOne({ email: decoded.email }, { password: hashedPassword })
+        await User.updateOne({ email }, { password: hashedPassword })
 
         res.json({ message: "Password updated successfully" })
     } catch (error) {
-        res.status(401).json({ message: "Invalid or expired token", error: error.message })
+        res.status(500).json({ message: "Something went wrong", error: error.message })
     }
 }
 
-// reset password
-const resetPassword = async (req, res) => {
-    const { newPassword } = req.body
-    const token = req.headers['token']
-
-    if (!newPassword || newPassword.length < 8) {
-        return res.status(400).json({ message: "Password must be at least 8 characters" })
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.KEY)
-        const user = await User.findOne({ email: decoded.email })
-        if (!user) return res.status(404).json({ message: "User not found" })
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
-        await User.updateOne({ email: decoded.email }, { password: hashedPassword })
-
-        res.json({ message: "Password reset successfully" })
-    } catch (error) {
-        res.status(400).json({ message: "Token expired or invalid" })
-    }
-}
 // send OTP to user email for password reset
 const forgotPassword = async (req, res) => {
-    const { email } = req.body;
+    const { email } = req.body
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ message: "User not found" })
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpToken = jwt.sign({ email, otp }, process.env.KEY, { expiresIn: "5m" });
+    const otpToken = jwt.sign({ email, otp }, process.env.KEY, { expiresIn: "5m" })
 
     try {
         await sendOTP(email, otp); // لازم تكون عندك دالة sendOTP بتبعت الإيميل
-        res.json({ message: "OTP sent successfully", token: otpToken });
+        res.json({ message: "OTP sent successfully", token: otpToken })
     } catch (error) {
-        res.status(500).json({ message: "Error sending OTP", error });
+        res.status(500).json({ message: "Error sending OTP", error })
     }
 };
 
