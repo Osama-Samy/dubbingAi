@@ -78,7 +78,7 @@ const textToSpeech = async (req, res) => {
 
 // Get all TTS records for the authenticated user
 const getAllTextToSpeech = async (req, res) => {
-    userId = req.user.userId
+    const userId = req.user.userId
     try {
         const speeches = await Speech.find({ userId })
             .select("-public_id -__v")
