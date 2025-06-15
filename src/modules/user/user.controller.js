@@ -188,8 +188,9 @@ const getUser = async (req, res) => {
 const updateUser = async (req, res) => {
 
     try {
+    const userId = req.user.userId
     const { username, email } = req.body
-    let user = await User.findById(req.userId)
+    let user = await User.findById(userId)
     if (!user) return res.status(404).json({ message: "User not found" })
 
     if (username) user.username = username
@@ -217,7 +218,8 @@ const updateUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.userId)
+        const userId = req.user.userId        
+        const user = await User.findByIdAndDelete(userId)
         if (!user) return res.status(404).json({ message: "User not found" })
         res.json({ message: "User deleted successfully" })
     } catch (err) {
