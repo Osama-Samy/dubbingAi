@@ -2,6 +2,7 @@ import Speech from "../../../database/models/textToSpeech.model.js"
 import axios from "axios"
 import speechValidation from "./textToSpeech.validation.js"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
+import { v2 as cloudinary } from "cloudinary"
 import dotenv from "dotenv"
 dotenv.config()
 
