@@ -85,9 +85,9 @@ const changePassword = async (req, res) => {
     }
 
     try {
-        const email = req.user.email
-        const user = await User.findOne({ email })
+        const userId = req.user.id // Make sure your middleware adds 'id' to req.user
 
+        const user = await User.findById(userId)
         if (!user) {
             return res.status(404).json({ message: "User not found" })
         }
@@ -99,17 +99,18 @@ const changePassword = async (req, res) => {
 
         const isSame = await bcrypt.compare(newPassword, user.password)
         if (isSame) {
-            return res.status(400).json({ message: "New password cannot be the same as old password" });
+            return res.status(400).json({ message: "New password cannot be the same as old password" })
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10)
-        await User.updateOne({ email }, { password: hashedPassword })
+        await User.updateOne({ _id: userId }, { password: hashedPassword })
 
         res.json({ message: "Password updated successfully" })
     } catch (error) {
         res.status(500).json({ message: "Something went wrong", error: error.message })
     }
 }
+
 
 // send OTP to user email for password reset
 const forgotPassword = async (req, res) => {
