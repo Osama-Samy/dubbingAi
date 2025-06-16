@@ -9,13 +9,13 @@ export const sendEmail = async (email) => {
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: "0111317osama@gmail.com", 
+                user: "osamaearnmoney11@gmail.com", 
                 pass: process.env.EMAIL_PASS, 
             },
         })
         jwt.sign({email}, process.env.KEY, async (err, token) => {
             const info = await transporter.sendMail({
-                from: '"Osama Samy"0111317osama@gmail.com',
+                from: '"Osama Samy"osamaearnmoney11@gmail.com',
                 to: email, 
                 subject: "Hello, Please Verify DubMaster Ai Email✔", 
                 html: emailHtml(token) 
