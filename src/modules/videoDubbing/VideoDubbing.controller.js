@@ -1,142 +1,135 @@
 import axios from "axios"
 import { uploadToCloudinary } from "../../middleware/cloudinary.js"
+import { v2 as cloudinary } from "cloudinary"
+import dotenv from "dotenv"
+import FormData from "form-data"
 import { VideoDubbing } from "../../../database/models/videoDubbing.js"
 
-// Process video and upload to Cloudinary
-const videoDubbing = async (req, res) => {
-    const userId = req.userId
-    if (!userId) {
-        return res.status(401).json({ error: "User authentication required." })
-    }
+dotenv.config()
 
-    if (!req.file) {
-        return res.status(400).json({ error: "No video file uploaded." })
+const videoDubbing = async (req, res) => {
+    const userId = req.user.userId
+
+    if (!req.file || !userId) {
+        return res.status(400).json({ error: "Video file and userId are required" })
     }
 
     try {
-        const videoBuffer = req.file.buffer
-
-        // Send the video to the AI API for processing
-        const aiResponse = await axios.post(
-            "https://api.example.com/video-processing",
-            videoBuffer,
-            {
-                headers: { 'Content-Type': 'video/mp4' },
-                responseType: "arraybuffer",
-                timeout: 30000 // 30 seconds timeout
-            }
-        )
-        res.json({
-            success: true,
-            aiResult: aiResponse.data
+        // Prepare form-data as expected by the model
+        const form = new FormData()
+        form.append("file", req.file.buffer, {
+            filename: "video.mp4",
+            contentType: "video/mp4"
         })
 
-        if (!aiResponse.data) {
-            throw new Error("AI model failed to process the video.")
-        }
-
-        // Upload the processed video to Cloudinary and get public_id
-        const { public_id, secure_url } = await uploadToCloudinary(
-            aiResponse.data,
-            "video",
-            { resource_type: "video", folder: "dubbing_videos" }
+        const response = await axios.post(
+            process.env.DUBBING_API_ENDPOINT,
+            form,
+            {
+                headers: {
+                    ...form.getHeaders()
+                },
+                responseType: "arraybuffer"
+            }
         )
 
-        // Save video data in MongoDB in the background
-        VideoDubbing.create({
+        const videoBuffer = Buffer.from(response.data)
+
+        const { public_id, secure_url } = await uploadToCloudinary(
+            videoBuffer,
+            "video/mp4",
+            { resource_type: "video", folder: "dubbed_videos" }
+        )
+
+        await VideoDubbing.create({
             userId,
             videoUrl: secure_url,
             public_id
         })
 
+        res.status(201).json({ success: true, videoUrl: secure_url })
+
     } catch (error) {
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || "Failed to process the video."
-        })
+        console.error("Subtitle Error:", error.message)
+        res.status(500).json({ error: "Failed to generate subtitle video" })
     }
 }
 
-// Delete video from Cloudinary and MongoDB
-const deleteVideoDubbing = async (req, res) => {
+const getAllVideoDubbing = async (req, res) => {
+    const userId = req.user.userId
     try {
-        // Ensure the video belongs to the authenticated user
+        const videos = await VideoDubbing.find({ userId })
+            .select("-public_id -__v")
+            .sort({ createdAt: -1 })
+
+        res.json({ count: videos.length, data: videos })
+
+    } catch (error) {
+        res.status(500).json({ error: "Failed to retrieve videos" })
+    }
+}
+
+const deleteOneVideoDubbing = async (req, res) => {
+    try {
+        const userId = req.user.userId
+
         const video = await VideoDubbing.findOne({
             _id: req.params.videoDubbingId,
-            userId: req.userId
+            userId
         })
 
         if (!video) {
-            return res.status(404).json({ error: "Video not found or access denied." })
+            return res.status(404).json({ error: "Video not found" })
         }
 
-        await cloudinary.uploader.destroy(video.public_id)
+        await cloudinary.uploader.destroy(video.public_id, { resource_type: "video" })
+
         await VideoDubbing.deleteOne({ _id: video._id })
 
-        res.json({ success: true, message: "Video deleted successfully." })
-
-    } catch (error) {
-        res.status(500).json({ error: "Failed to delete the video. Please try again." })
-    }
-}
-
-// Get all video dubbing records for the user, with pagination
-const getAllVideoDubbing = async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1
-        const limit = parseInt(req.query.limit) || 10
-        const skip = (page - 1) * limit
-
-        const videos = await VideoDubbing.find({ userId: req.userId })
-            .select("-public_id -__v")
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 })
-
-        const total = await VideoDubbing.countDocuments({ userId: req.userId })
-
         res.json({
-            page,
-            totalPages: Math.ceil(total / limit),
-            data: videos
+            success: true,
+            message: "Video deleted successfully"
         })
 
     } catch (error) {
-        res.status(500).json({ error: "Failed to retrieve videos." })
+        console.error("Delete Error:", error)
+        res.status(500).json({ error: "Failed to delete video. Please try again." })
     }
 }
 
-// Change the name/title of a video dubbing record
 const changeName = async (req, res) => {
-    const { name } = req.body
-    if (!name?.trim()) {
-        return res.status(400).json({ error: "Name is required." })
-    }
-
     try {
-        // Ensure the video belongs to the authenticated user
-        const video = await VideoDubbing.findOneAndUpdate(
+        const { name } = req.body
+        if (!name?.trim()) {
+            return res.status(400).json({ error: "Name is required" })
+        }
+
+        const updatedVideo = await VideoDubbing.findOneAndUpdate(
             {
                 _id: req.params.videoDubbingId,
-                userId: req.userId
+                userId: req.user.userId
             },
             { name },
             { new: true, runValidators: true }
         ).select("-public_id -__v")
 
-        if (!video) {
-            return res.status(404).json({ error: "Video not found or access denied." })
+        if (!updatedVideo) {
+            return res.status(404).json({ error: "Video not found" })
         }
 
-        res.json({ success: true, data: video })
+        res.json({
+            success: true,
+            data: updatedVideo
+        })
 
     } catch (error) {
-        res.status(500).json({ error: "Failed to update the name." })
+        res.status(500).json({ error: "Failed to update name. Please try again." })
     }
 }
 
 export {
     videoDubbing,
-    deleteVideoDubbing,
     getAllVideoDubbing,
+    deleteOneVideoDubbing,
     changeName
 }

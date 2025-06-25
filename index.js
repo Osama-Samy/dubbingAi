@@ -1,3 +1,9 @@
+/**
+ * =========================================
+ *  DubMaster AI
+ *  Developed by Osama Samy
+ * =========================================
+ */
 import express from "express"
 import userRouter from "./src/modules/user/user.routes.js"
 import { connectDB } from "./database/dbCon.js"

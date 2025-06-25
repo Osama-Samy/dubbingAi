@@ -143,9 +143,6 @@ const resetPassword = async (req, res) => {
         const user = await User.findOne({ email: decoded.email })
 
         if (!user) return res.status(404).json({ message: "User not found" })
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
-        user.password = hashedPassword
         await user.save()
 
         res.json({ message: "Password reset successfully" })
